@@ -79,7 +79,37 @@ randomList :  (Int, Seed) -> List Int -> List Int
 randomList s l = if (length l) <= 10 then
           randomList (Random.step g (snd s)) (append [fst s] l) 
         else l
-             
+
+-- random point             
+randomPoint : Generator (Int, Int)
+randomPoint =
+    pair (int -200 200) (int -100 100)
+
+-- list random         
+floatList : Generator (List Float)
+floatList =
+    list 10 (float 0 1)
+
+intList : Generator (List Int)
+intList =
+    list 5 (int 0 100)
+
+intPairs : Generator (List (Int, Int))
+intPairs =
+    list 10 randomPoint
+
+         
+-- http://stackoverflow.com/questions/5837572/generate-a-random-point-within-a-circle-uniformly
+generatorStep1 : Int -> Int -> Generator (List (Float, Float))
+generatorStep1 r n =
+  Random.list n <| Random.pair (Random.float 0.0 (2.0 * pi)) (Random.map (\x -> x * toFloat r) (Random.float 0.0 1.0))
+
+pointListIAC : Int -> Int -> Seed -> List (Int, Int)
+pointListIAC r n s =
+  List.map (\x -> (round <| (snd x) * cos (fst x), round <| (snd x) * sin (fst x))) <| fst (Random.step (generatorStep1 r n) s)
+
+-- http://jsfiddle.net/b0sb5ogL/1/      
+  
 -- Random
 {-
 rad = 10
@@ -91,10 +121,28 @@ x = r * np.cos(t)
 y = r * np.sin(t)
 -}
 
-listTest = randomList gi []
+-- test = randomList gi []
+-- test = fst <| Random.step intPairs initSeed
+
+-- step 1 : Randomize
+
+-- step 2 : Explose
+
+-- step 3 : Selectionner room > seuil
+
+-- step 4 : Triangulation 
+
+-- step 5 : Minimum Spanning Tree
+
+-- step 6 : Creer les couloirs
+
+-- step 7 : Ajouter texture
+
+-- test
+test = pointListIAC rad 10 initSeed
 
 -- main
 main : Html a         
-main =  let one = Debug.log "i " listTest in toHtml <| color lightGrey <| collage w h <| concat [gridLines, [ drawRoom room1 blue, drawRoom room2 yellow, drawRoom room3 green, c]]
+main =  let one = Debug.log "test " test in toHtml <| color lightGrey <| collage w h <| concat [gridLines, [ drawRoom room1 blue, drawRoom room2 yellow, drawRoom room3 green, c]]
        
 

@@ -1,7 +1,6 @@
 import List exposing (..)
 import Collage exposing (..)
 import Color exposing (..)
-import Html exposing (Html)
 import Element exposing (..)
 import Maybe exposing (..)
 import Random exposing (..)
@@ -9,6 +8,20 @@ import Debug exposing (..)
 
 import Room exposing (..)
 import Grid exposing (..)
+
+import Html.App
+import Html exposing (Html, Attribute, text, div, input, button)
+import Html.Attributes exposing (..)
+import Html.Events exposing (onClick, onInput)
+
+import Result exposing (..)
+import String 
+
+import Messages exposing (..)
+
+import Models exposing (..)
+import View exposing (..)
+--import Update exposing (update)
 
 
 ----------------------------------------------------------------------------------------------
@@ -222,7 +235,6 @@ getRoomCenter r =
 
 fromTo : (Float, Float) -> (Float, Float) -> List (Float, Float) -> List (Float, Float)
 fromTo p1 p2 acc =
-  -- if (round (fst p1) == round (fst p2) && round (snd p1) == round (snd p2)) then 
   if (p1 == p2) then
     acc
   else
@@ -257,31 +269,87 @@ drawPaths : List Path -> Color -> List Form
 drawPaths l c =
   concat (List.map (\x -> drawPath x c) l)
 -----------------------------------------------------------------------------------------
--- Initial Seed
-initSeed = 9
-
 -- Step 1 : Create Random Rooms in a Circle
 rad = 30.0
-step1 = generateRooms 180 initSeed
+
+goStep1 : Int -> List Room
+goStep1 seed =
+  generateRooms 180 seed
+
+drawStep1 : Int -> List Form
+drawStep1 seed =
+  concat [gridLines, drawRooms (goStep1 seed)]
 
 -- Step 2 : Position Rooms
-step2 = positionAll step1 [] (sortFromCenter (step1))
+
+goStep2 : Int -> List Room
+goStep2 seed =
+  positionAll (goStep1 seed) [] (sortFromCenter (goStep1 seed))
+
+drawStep2 : Int -> List Form
+drawStep2 seed =
+  concat [gridLines, drawRooms (goStep2 seed)]
+
 
 -- step 3 : Selectionner room / Clean
-step3 = selectRooms (clean step2)
+
+goStep3 : Int -> List Room
+goStep3 seed =
+  selectRooms (clean <| goStep2 seed)
+
+drawStep3 : Int -> List Form
+drawStep3 seed =
+  concat [gridLines, drawRooms (goStep3 seed)]
+         
 
 -- step 4 : Path 
-step4 = createPaths (sortFromOrigin (List.filter onlyRealRoom step3))
 
--- step 6 : Creer les couloirs
+goStep4 : Int -> List Path
+goStep4 seed =
+  createPaths (sortFromOrigin (List.filter onlyRealRoom (goStep3 seed)))
 
--- step 7 : Ajouter texture
+drawStep4 : Int -> List Form
+drawStep4 seed =
+  concat [ gridLines, drawRooms (goStep3 seed), drawPaths (goStep4 seed) black ]
 
--- main
-main : Html a         
-main =  let one = Debug.log "test " step4 in toHtml <| 
-    color lightGrey <| 
-    collage w h <| 
-    -- concat [gridLines, [], drawRooms step3, drawPaths step4 black]
-    concat [[filled white <| rect 800 800], drawPaths step4 purple, drawRooms (List.filter onlyRealRoom step3)]
+drawStep5 : Int -> List Form
+drawStep5 seed =            
+  concat [ drawRooms (goStep3 seed), drawPaths (goStep4 seed) purple, gridLines ]
 
+    
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
+  
+  case msg of
+    Change newContent ->
+      ( { model | seed = Result.withDefault  0 (String.toInt newContent) }, Cmd.none )
+    Step1 ->
+       ( { model | content = (drawStep1 model.seed) }, Cmd.none )
+    Step2 ->
+       ( { model | content = (drawStep2 model.seed) }, Cmd.none )         
+    Step3 ->
+       ( { model | content = (drawStep3 model.seed) }, Cmd.none )         
+    Step4 ->
+       ( { model | content = (drawStep4 model.seed) }, Cmd.none )         
+    Step5 ->
+       ( { model | content = (drawStep5 model.seed) }, Cmd.none )
+
+
+init : ( Model, Cmd Msg )
+init =
+    ( { content = [], seed = 0 }, Cmd.none )
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.none
+
+main : Program Never
+main =
+    Html.App.program
+        { init = init
+        , view = view
+        , update = update
+        , subscriptions = subscriptions
+        }
+      

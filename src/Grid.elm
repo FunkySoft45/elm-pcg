@@ -47,7 +47,7 @@ p : (Float, Float) -> (Float, Float)
 p (x, y) = (px x, py y)
 
 gline : LineStyle
-gline = solid green        
+gline = solid orange        
         
 gl : (Float, Float) -> (Float, Float) -> Form
 gl (x1, y1) (x2, y2) = traced gline <| segment (p (x1, y1)) (p (x2, y2))   
